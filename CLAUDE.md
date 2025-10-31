@@ -185,3 +185,25 @@ convention to maintain consistent commit history.
 - **Reference issues**: Link commits to issue tracker for better project management
 - **Write for future maintainers**: Assume the reader doesn't have context about the change
 - **No AI attribution**: Do not include any references to AI tools, Claude, or code generation tools in commit messages
+
+## Development Workflow
+
+### Build Verification
+
+**IMPORTANT**: After completing any feature implementation or bug fix, always verify the build succeeds before committing:
+
+```bash
+# Clean and build the project
+xcodebuild -scheme MathTeachingApp -configuration Debug clean build
+
+# If build succeeds, proceed with commit
+# If build fails, fix the errors before committing
+```
+
+This ensures:
+- Code compiles without errors
+- No syntax or type errors introduced
+- Dependencies are properly linked
+- Project configuration remains valid
+
+**Never commit code that doesn't build successfully.**
