@@ -33,18 +33,23 @@ struct BlankInputView: View {
                 .multilineTextAlignment(.center)
                 .keyboardType(.numberPad)
                 .focused($focusedBlankId, equals: blank.id)
+                .tint(.clear)  // 隱藏游標
                 .onChange(of: text) { newValue in
                     // 只允許輸入0-9的單一數字
                     let filtered = newValue.filter { $0.isNumber }
+
+                    // 如果輸入新數字，取代原有數字（只保留最後一個字元）
                     if filtered.count > 1 {
-                        text = String(filtered.prefix(1))
+                        text = String(filtered.suffix(1))
                     } else {
                         text = filtered
                     }
-                    
+
                     // 更新答案
                     if let digit = Int(text) {
                         onAnswerChange(blank.id, digit)
+                        // 輸入完成後自動收起鍵盤
+                        focusedBlankId = nil
                     } else {
                         onAnswerChange(blank.id, nil)
                     }
