@@ -31,48 +31,57 @@ struct BlankInputView: View {
                 .stroke(borderColor, lineWidth: 3)
 
             // 輸入框
-            TextField("", text: Binding(
-                get: {
-                    let _ = logger.debug("GET - BlankID: \(blank.id), Current text: '\(text)', Focused: \(focusedBlankId == blank.id)")
-                    return text
-                },
-                set: { newValue in
-                    logger.info("SET - BlankID: \(blank.id), Old text: '\(text)', New value: '\(newValue)', Focused: \(focusedBlankId == blank.id)")
-
-                    // 過濾只保留數字
-                    let filtered = newValue.filter { $0.isNumber }
-                    logger.info("SET - Filtered: '\(filtered)'")
-
-                    // 只保留最後一個數字
-                    if !filtered.isEmpty {
-                        let lastDigit = String(filtered.last!)
-                        logger.info("SET - Setting text to: '\(lastDigit)'")
-                        text = lastDigit
-
-                        // 更新答案
-                        if let digit = Int(lastDigit) {
-                            logger.info("SET - Updating answer to: \(digit)")
-                            onAnswerChange(blank.id, digit)
-                        }
-
-                        // 收起鍵盤
-                        logger.info("SET - Dismissing keyboard")
-                        focusedBlankId = nil
-                    } else if newValue.isEmpty {
-                        // 清空
-                        logger.info("SET - Clearing text")
-                        text = ""
-                        onAnswerChange(blank.id, nil)
-                    }
-                }
-            ))
+            TextField("", text: $text)
                 .font(.system(size: 50, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.center)
                 .keyboardType(.numberPad)
                 .focused($focusedBlankId, equals: blank.id)
                 .tint(.clear)  // 隱藏游標
+                .onChange(of: text) { newValue in
+                    logger.info("═══ TEXT CHANGED ═══")
+                    logger.info("BlankID: \(blank.id)")
+                    logger.info("New text value: '\(newValue)'")
+
+                    // 過濾只保留數字
+                    let filtered = newValue.filter { $0.isNumber }
+                    logger.info("After filtering: '\(filtered)'")
+
+                    if !filtered.isEmpty {
+                        // 只保留最後一個數字
+                        let lastDigit = String(filtered.last!)
+                        logger.info("Selected digit: '\(lastDigit)'")
+
+                        // 如果過濾後的結果與當前文字不同，更新它
+                        if text != lastDigit {
+                            logger.info("Updating text to: '\(lastDigit)'")
+                            text = lastDigit
+                        }
+
+                        // 更新答案
+                        if let digit = Int(lastDigit) {
+                            logger.info("Calling onAnswerChange with: \(digit)")
+                            onAnswerChange(blank.id, digit)
+                        }
+
+                        // 收起鍵盤
+                        logger.info("Dismissing keyboard")
+                        focusedBlankId = nil
+                    } else if newValue.isEmpty {
+                        // 清空
+                        logger.info("Clearing")
+                        onAnswerChange(blank.id, nil)
+                    }
+                    logger.info("═══ END ═══")
+                }
                 .onChange(of: focusedBlankId) { newFocusedId in
-                    logger.info("FOCUS CHANGED - BlankID: \(blank.id), New focused: \(String(describing: newFocusedId)), Is this blank focused: \(newFocusedId == blank.id), Current text: '\(text)'")
+                    let isFocused = (newFocusedId == blank.id)
+                    logger.info("FOCUS CHANGED - BlankID: \(blank.id), Is focused: \(isFocused), Current text: '\(text)'")
+
+                    // 當獲得焦點時，清空文字欄位，以便接收新的輸入
+                    if isFocused {
+                        logger.info("Got focus - clearing text to accept new input")
+                        text = ""
+                    }
                 }
             
             // 正確答案提示(驗證後且錯誤時顯示)
