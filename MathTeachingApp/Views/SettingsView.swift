@@ -36,7 +36,7 @@ struct SettingsView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
                     }
-                    
+
                     HStack {
                         Text("最大值")
                         Spacer()
@@ -45,6 +45,10 @@ struct SettingsView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
                     }
+                }
+
+                Section(header: Text("進階選項"), footer: Text("開啟後，同一位數可能出現多個空格，需根據整體算式判斷答案")) {
+                    Toggle("允許進階題型", isOn: $viewModel.settings.allowMultipleBlanksPerColumn)
                 }
                 
                 Section {

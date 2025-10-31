@@ -60,10 +60,14 @@ class MathQuizViewModel: ObservableObject {
             let num1 = Int.random(in: settings.minNumber...settings.maxNumber)
             // 確保減數小於被減數,且結果為正數
             let num2 = Int.random(in: settings.minNumber...min(num1, settings.maxNumber))
-            
-            let problem = MathProblem(number1: num1, number2: num2)
+
+            let problem = MathProblem(
+                number1: num1,
+                number2: num2,
+                allowMultipleBlanksPerColumn: settings.allowMultipleBlanksPerColumn
+            )
             problems.append(problem)
-            
+
             // 初始化空的答案
             userAnswers[problem.id] = UserAnswer(
                 problemId: problem.id,

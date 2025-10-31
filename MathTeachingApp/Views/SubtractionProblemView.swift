@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.lenny.MathTeachingApp", category: "SubtractionProblem")
 
 struct SubtractionProblemView: View {
     let problem: MathProblem
@@ -16,14 +19,18 @@ struct SubtractionProblemView: View {
     let onAnswerChange: (UUID, Int?) -> Void
     
     var body: some View {
-        VStack(alignment: .trailing, spacing: 10) {
+        let digits1 = digitArray(from: problem.number1)
+        let digits2 = digitArray(from: problem.number2)
+        let answerDigits = digitArray(from: problem.correctAnswer)
+        let maxLength = max(digits1.count, digits2.count, answerDigits.count)
+
+        // Debug logging
+        let _ = logger.info("Problem: \(problem.number1) - \(problem.number2) = \(problem.correctAnswer)")
+        let _ = logger.info("Digits1: \(digits1.description), Digits2: \(digits2.description), Answer: \(answerDigits.description)")
+        let _ = logger.info("Blanks: \(problem.blanks.map { "(\($0.rowName), idx:\($0.digitIndex), digit:\($0.correctDigit))" }.joined(separator: ", "))")
+
+        return VStack(alignment: .trailing, spacing: 10) {
             // 將數字轉換為陣列以便處理每一位
-            let digits1 = digitArray(from: problem.number1)
-            let digits2 = digitArray(from: problem.number2)
-            let answerDigits = digitArray(from: problem.correctAnswer)
-            
-            // 確保所有行都有相同的位數
-            let maxLength = max(digits1.count, digits2.count, answerDigits.count)
             
             // 第一列: 被減數
             HStack(spacing: 15) {
@@ -45,17 +52,28 @@ struct SubtractionProblemView: View {
                 Text("-")
                     .font(.system(size: 50, weight: .bold))
                     .frame(width: 60, height: 70)
-                
-                ForEach(0..<maxLength-1, id: \.self) { index in
-                    DigitOrBlankView(
-                        digit: index < digits2.count ? digits2[index] : nil,
-                        blank: blankAt(row: 1, index: index),
-                        userAnswer: userAnswer,
-                        validationResult: validationResults,
-                        showValidation: showValidation,
-                        focusedBlankId: _focusedBlankId,
-                        onAnswerChange: onAnswerChange
-                    )
+
+                // 減數需要右對齊，所以前面補空位
+                let padding = maxLength - digits2.count
+                ForEach(0..<maxLength, id: \.self) { index in
+                    if index < padding {
+                        // 前面補空位對齊
+                        Text("")
+                            .font(.system(size: 50, weight: .bold, design: .rounded))
+                            .frame(width: 60, height: 70)
+                    } else {
+                        // 顯示減數的數字
+                        let digit2Index = index - padding
+                        DigitOrBlankView(
+                            digit: digit2Index < digits2.count ? digits2[digit2Index] : nil,
+                            blank: blankAt(row: 1, index: digit2Index),
+                            userAnswer: userAnswer,
+                            validationResult: validationResults,
+                            showValidation: showValidation,
+                            focusedBlankId: _focusedBlankId,
+                            onAnswerChange: onAnswerChange
+                        )
+                    }
                 }
             }
             
@@ -67,16 +85,27 @@ struct SubtractionProblemView: View {
             
             // 答案列
             HStack(spacing: 15) {
+                // 答案需要右對齊，所以前面補空位
+                let answerPadding = maxLength - answerDigits.count
                 ForEach(0..<maxLength, id: \.self) { index in
-                    DigitOrBlankView(
-                        digit: index < answerDigits.count ? answerDigits[index] : nil,
-                        blank: blankAt(row: 2, index: index),
-                        userAnswer: userAnswer,
-                        validationResult: validationResults,
-                        showValidation: showValidation,
-                        focusedBlankId: _focusedBlankId,
-                        onAnswerChange: onAnswerChange
-                    )
+                    if index < answerPadding {
+                        // 前面補空位對齊
+                        Text("")
+                            .font(.system(size: 50, weight: .bold, design: .rounded))
+                            .frame(width: 60, height: 70)
+                    } else {
+                        // 顯示答案的數字
+                        let answerIndex = index - answerPadding
+                        DigitOrBlankView(
+                            digit: answerIndex < answerDigits.count ? answerDigits[answerIndex] : nil,
+                            blank: blankAt(row: 2, index: answerIndex),
+                            userAnswer: userAnswer,
+                            validationResult: validationResults,
+                            showValidation: showValidation,
+                            focusedBlankId: _focusedBlankId,
+                            onAnswerChange: onAnswerChange
+                        )
+                    }
                 }
             }
         }
