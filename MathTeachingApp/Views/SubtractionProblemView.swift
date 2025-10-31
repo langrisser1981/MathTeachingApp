@@ -62,7 +62,7 @@ struct SubtractionProblemView: View {
             // 分隔線
             Divider()
                 .frame(height: 3)
-                .background(Color.black)
+                .background(Color(uiColor: .label))
                 .padding(.vertical, 5)
             
             // 答案列
@@ -122,7 +122,7 @@ struct DigitOrBlankView: View {
             Text("\(digit)")
                 .font(.system(size: 50, weight: .bold, design: .rounded))
                 .frame(width: 60, height: 70)
-                .background(Color.white)
+                .background(Color(uiColor: .systemBackground))
                 .cornerRadius(10)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)

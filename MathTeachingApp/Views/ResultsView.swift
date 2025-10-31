@@ -151,7 +151,7 @@ struct ResultRowView: View {
                 }
             }
             .padding()
-            .background(Color.white)
+            .background(Color(uiColor: .secondarySystemBackground))
             .cornerRadius(10)
             .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
         }
