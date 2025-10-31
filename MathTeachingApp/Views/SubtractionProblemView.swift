@@ -22,48 +22,64 @@ struct SubtractionProblemView: View {
         let digits1 = digitArray(from: problem.number1)
         let digits2 = digitArray(from: problem.number2)
         let answerDigits = digitArray(from: problem.correctAnswer)
-        let maxLength = max(digits1.count, digits2.count, answerDigits.count)
+
+        // 乘法的對齊方式不同：操作數按自己的長度對齊，答案另外對齊
+        // 加法和減法：所有數字都對齊到最長的長度
+        let maxLength: Int
+        if problem.type == .multiplication {
+            maxLength = max(digits1.count, digits2.count)
+        } else {
+            maxLength = max(digits1.count, digits2.count, answerDigits.count)
+        }
 
         // Debug logging
-        let _ = logger.info("Problem: \(problem.number1) - \(problem.number2) = \(problem.correctAnswer)")
+        let _ = logger.info("Problem: \(problem.number1) \(problem.type.symbol) \(problem.number2) = \(problem.correctAnswer)")
         let _ = logger.info("Digits1: \(digits1.description), Digits2: \(digits2.description), Answer: \(answerDigits.description)")
         let _ = logger.info("Blanks: \(problem.blanks.map { "(\($0.rowName), idx:\($0.digitIndex), digit:\($0.correctDigit))" }.joined(separator: ", "))")
 
         return VStack(alignment: .trailing, spacing: 10) {
             // 將數字轉換為陣列以便處理每一位
-            
-            // 第一列: 被減數
+
+            // 第一列: 第一個數字
             HStack(spacing: 15) {
+                let padding1 = maxLength - digits1.count
                 ForEach(0..<maxLength, id: \.self) { index in
-                    DigitOrBlankView(
-                        digit: index < digits1.count ? digits1[index] : nil,
-                        blank: blankAt(row: 0, index: index),
-                        userAnswer: userAnswer,
-                        validationResult: validationResults,
-                        showValidation: showValidation,
-                        focusedBlankId: _focusedBlankId,
-                        onAnswerChange: onAnswerChange
-                    )
+                    if index < padding1 {
+                        Text("")
+                            .font(.system(size: 50, weight: .bold, design: .rounded))
+                            .frame(width: 60, height: 70)
+                    } else {
+                        let digit1Index = index - padding1
+                        DigitOrBlankView(
+                            digit: digit1Index < digits1.count ? digits1[digit1Index] : nil,
+                            blank: blankAt(row: 0, index: digit1Index),
+                            userAnswer: userAnswer,
+                            validationResult: validationResults,
+                            showValidation: showValidation,
+                            focusedBlankId: _focusedBlankId,
+                            onAnswerChange: onAnswerChange
+                        )
+                    }
                 }
             }
-            
-            // 減號和第二列: 減數
+
+            // 運算符號和第二列: 第二個數字
             HStack(spacing: 15) {
-                Text("-")
+                Text(problem.type.symbol)
                     .font(.system(size: 50, weight: .bold))
                     .frame(width: 60, height: 70)
 
-                // 減數需要右對齊，所以前面補空位
-                let padding = maxLength - digits2.count
+                // 第二個數字需要右對齊，所以前面補空位
+                let padding2 = maxLength - digits2.count
                 ForEach(0..<maxLength, id: \.self) { index in
-                    if index < padding {
+                    if index < padding2 {
                         // 前面補空位對齊
                         Text("")
                             .font(.system(size: 50, weight: .bold, design: .rounded))
                             .frame(width: 60, height: 70)
                     } else {
-                        // 顯示減數的數字
-                        let digit2Index = index - padding
+                        // 顯示第二個數字
+                        let digit2Index = index - padding2
                         DigitOrBlankView(
                             digit: digit2Index < digits2.count ? digits2[digit2Index] : nil,
                             blank: blankAt(row: 1, index: digit2Index),
@@ -76,18 +92,21 @@ struct SubtractionProblemView: View {
                     }
                 }
             }
-            
+
             // 分隔線
             Divider()
                 .frame(height: 3)
                 .background(Color(uiColor: .label))
                 .padding(.vertical, 5)
-            
+
             // 答案列
             HStack(spacing: 15) {
-                // 答案需要右對齊，所以前面補空位
-                let answerPadding = maxLength - answerDigits.count
-                ForEach(0..<maxLength, id: \.self) { index in
+                // 乘法：答案可能比操作數長，需要獨立對齊
+                // 加減法：答案與操作數一起對齊
+                let answerMaxLength = problem.type == .multiplication ? answerDigits.count : maxLength
+                let answerPadding = answerMaxLength - answerDigits.count
+
+                ForEach(0..<answerMaxLength, id: \.self) { index in
                     if index < answerPadding {
                         // 前面補空位對齊
                         Text("")

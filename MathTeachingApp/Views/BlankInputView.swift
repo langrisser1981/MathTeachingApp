@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.lenny.MathTeachingApp", category: "BlankInput")
 
 struct BlankInputView: View {
     let blank: BlankPosition
@@ -16,43 +19,60 @@ struct BlankInputView: View {
     let onAnswerChange: (UUID, Int?) -> Void
     
     @State private var text: String = ""
-    
+
     var body: some View {
         ZStack {
             // 背景顏色 - 根據驗證結果
             RoundedRectangle(cornerRadius: 10)
                 .fill(backgroundColor)
-            
+
             // 邊框
             RoundedRectangle(cornerRadius: 10)
                 .stroke(borderColor, lineWidth: 3)
-            
+
             // 輸入框
-            TextField("", text: $text)
+            TextField("", text: Binding(
+                get: {
+                    let _ = logger.debug("GET - BlankID: \(blank.id), Current text: '\(text)', Focused: \(focusedBlankId == blank.id)")
+                    return text
+                },
+                set: { newValue in
+                    logger.info("SET - BlankID: \(blank.id), Old text: '\(text)', New value: '\(newValue)', Focused: \(focusedBlankId == blank.id)")
+
+                    // 過濾只保留數字
+                    let filtered = newValue.filter { $0.isNumber }
+                    logger.info("SET - Filtered: '\(filtered)'")
+
+                    // 只保留最後一個數字
+                    if !filtered.isEmpty {
+                        let lastDigit = String(filtered.last!)
+                        logger.info("SET - Setting text to: '\(lastDigit)'")
+                        text = lastDigit
+
+                        // 更新答案
+                        if let digit = Int(lastDigit) {
+                            logger.info("SET - Updating answer to: \(digit)")
+                            onAnswerChange(blank.id, digit)
+                        }
+
+                        // 收起鍵盤
+                        logger.info("SET - Dismissing keyboard")
+                        focusedBlankId = nil
+                    } else if newValue.isEmpty {
+                        // 清空
+                        logger.info("SET - Clearing text")
+                        text = ""
+                        onAnswerChange(blank.id, nil)
+                    }
+                }
+            ))
                 .font(.system(size: 50, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.center)
                 .keyboardType(.numberPad)
                 .focused($focusedBlankId, equals: blank.id)
                 .tint(.clear)  // 隱藏游標
-                .onChange(of: text) { newValue in
-                    // 只允許輸入0-9的單一數字
-                    let filtered = newValue.filter { $0.isNumber }
-
-                    // 如果輸入新數字，取代原有數字（只保留最後一個字元）
-                    if filtered.count > 1 {
-                        text = String(filtered.suffix(1))
-                    } else {
-                        text = filtered
-                    }
-
-                    // 更新答案
-                    if let digit = Int(text) {
-                        onAnswerChange(blank.id, digit)
-                        // 輸入完成後自動收起鍵盤
-                        focusedBlankId = nil
-                    } else {
-                        onAnswerChange(blank.id, nil)
-                    }
+                .onChange(of: focusedBlankId) { newFocusedId in
+                    logger.info("FOCUS CHANGED - BlankID: \(blank.id), New focused: \(String(describing: newFocusedId)), Is this blank focused: \(newFocusedId == blank.id), Current text: '\(text)'")
                 }
             
             // 正確答案提示(驗證後且錯誤時顯示)
@@ -87,6 +107,26 @@ struct BlankInputView: View {
             // 載入已有的答案
             if let answer = userAnswer?.answers[blank.id] {
                 text = "\(answer)"
+            } else {
+                text = ""
+            }
+        }
+        .onChange(of: blank.id) { _ in
+            // 當空格ID改變時（新題目），重新載入答案
+            if let answer = userAnswer?.answers[blank.id] {
+                text = "\(answer)"
+            } else {
+                text = ""
+            }
+        }
+        .onChange(of: userAnswer?.answers[blank.id]) { newAnswer in
+            // 當答案改變時（但不是由本元件觸發的），同步更新text
+            if let answer = newAnswer {
+                if text != "\(answer)" {
+                    text = "\(answer)"
+                }
+            } else if !text.isEmpty {
+                text = ""
             }
         }
     }

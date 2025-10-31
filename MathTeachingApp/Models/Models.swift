@@ -7,33 +7,89 @@
 
 import Foundation
 
+// MARK: - 題目類型
+enum ProblemType: String, Codable, CaseIterable {
+    case addition = "加法"
+    case subtraction = "減法"
+    case multiplication = "乘法"
+
+    var symbol: String {
+        switch self {
+        case .addition: return "+"
+        case .subtraction: return "-"
+        case .multiplication: return "×"
+        }
+    }
+}
+
 // MARK: - 題目模型
 struct MathProblem: Identifiable, Codable {
     let id: UUID
-    let number1: Int        // 被減數
-    let number2: Int        // 減數
+    let type: ProblemType   // 題目類型
+    let number1: Int        // 第一個數字（被加數/被減數/被乘數）
+    let number2: Int        // 第二個數字（加數/減數/乘數）
     let correctAnswer: Int  // 正確答案
     let blanks: [BlankPosition]  // 空格位置
     let allowMultipleBlanksPerColumn: Bool  // 是否允許同一位數多個空格
 
-    init(number1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool = false, blankCount: Int = 3) {
+    init(type: ProblemType, number1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool = false, blankCount: Int = 3) {
         self.id = UUID()
+        self.type = type
         self.number1 = number1
         self.number2 = number2
-        self.correctAnswer = number1 - number2
+
+        // 根據題型計算答案
+        switch type {
+        case .addition:
+            self.correctAnswer = number1 + number2
+        case .subtraction:
+            self.correctAnswer = number1 - number2
+        case .multiplication:
+            self.correctAnswer = number1 * number2
+        }
+
         self.allowMultipleBlanksPerColumn = allowMultipleBlanksPerColumn
-        self.blanks = Self.generateBlanks(for: number1, number2: number2, allowMultipleBlanksPerColumn: allowMultipleBlanksPerColumn, blankCount: blankCount)
+        self.blanks = Self.generateBlanks(
+            type: type,
+            for: number1,
+            number2: number2,
+            answer: correctAnswer,
+            allowMultipleBlanksPerColumn: allowMultipleBlanksPerColumn,
+            blankCount: blankCount
+        )
     }
     
     // 生成空格位置
-    private static func generateBlanks(for num1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool, blankCount: Int) -> [BlankPosition] {
+    private static func generateBlanks(
+        type: ProblemType,
+        for num1: Int,
+        number2: Int,
+        answer: Int,
+        allowMultipleBlanksPerColumn: Bool,
+        blankCount: Int
+    ) -> [BlankPosition] {
         var positions: [BlankPosition] = []
-        let answer = num1 - number2
 
         // 將數字轉換為陣列
         let digits1 = String(num1).map { Int(String($0))! }
         let digits2 = String(number2).map { Int(String($0))! }
         let answerDigits = String(answer).map { Int(String($0))! }
+
+        // 乘法只有答案空格
+        if type == .multiplication {
+            let answerBlankCount = min(blankCount, answerDigits.count)
+            let selectedIndices = Array(0..<answerDigits.count).shuffled().prefix(answerBlankCount)
+
+            for index in selectedIndices {
+                positions.append(BlankPosition(
+                    row: 2,
+                    digitIndex: index,
+                    correctDigit: answerDigits[index]
+                ))
+            }
+
+            return positions.sorted { $0.digitIndex < $1.digitIndex }
+        }
 
         if allowMultipleBlanksPerColumn {
             // 進階模式：允許同一位數出現多個空格
@@ -178,6 +234,8 @@ struct QuizSettings: Codable {
     var maxNumber: Int = 9999      // 最大數字(四位數)
     var difficulty: Difficulty = .medium
     var allowMultipleBlanksPerColumn: Bool = false  // 允許同一位數出現多個空格（進階題型）
+    var selectedTypes: Set<ProblemType> = [.subtraction]  // 選擇的題型
+    var isMixedOrder: Bool = false  // 是否混合出題順序
 
     enum Difficulty: String, Codable, CaseIterable {
         case easy = "簡單"

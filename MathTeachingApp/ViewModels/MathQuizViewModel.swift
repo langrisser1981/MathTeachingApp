@@ -56,25 +56,74 @@ class MathQuizViewModel: ObservableObject {
     }
     
     private func generateProblems() {
-        for _ in 0..<settings.numberOfProblems {
-            let num1 = Int.random(in: settings.minNumber...settings.maxNumber)
-            // 確保減數小於被減數,且結果為正數
-            let num2 = Int.random(in: settings.minNumber...min(num1, settings.maxNumber))
+        guard !settings.selectedTypes.isEmpty else { return }
 
-            let problem = MathProblem(
-                number1: num1,
-                number2: num2,
-                allowMultipleBlanksPerColumn: settings.allowMultipleBlanksPerColumn,
-                blankCount: settings.difficulty.blankCount
-            )
-            problems.append(problem)
+        let types = Array(settings.selectedTypes)
 
-            // 初始化空的答案
-            userAnswers[problem.id] = UserAnswer(
-                problemId: problem.id,
-                answers: [:]
-            )
+        if settings.isMixedOrder {
+            // 混合模式：隨機混合題型
+            for _ in 0..<settings.numberOfProblems {
+                let type = types.randomElement()!
+                let problem = generateProblem(ofType: type)
+                problems.append(problem)
+
+                userAnswers[problem.id] = UserAnswer(
+                    problemId: problem.id,
+                    answers: [:]
+                )
+            }
+        } else {
+            // 依序模式：平均分配題型
+            let problemsPerType = settings.numberOfProblems / types.count
+            let remainder = settings.numberOfProblems % types.count
+
+            for (index, type) in types.enumerated() {
+                let count = problemsPerType + (index < remainder ? 1 : 0)
+
+                for _ in 0..<count {
+                    let problem = generateProblem(ofType: type)
+                    problems.append(problem)
+
+                    userAnswers[problem.id] = UserAnswer(
+                        problemId: problem.id,
+                        answers: [:]
+                    )
+                }
+            }
         }
+    }
+
+    private func generateProblem(ofType type: ProblemType) -> MathProblem {
+        let num1: Int
+        let num2: Int
+
+        switch type {
+        case .addition:
+            // 加法：兩個數字相加不超過最大值
+            num1 = Int.random(in: settings.minNumber...settings.maxNumber)
+            let maxNum2 = min(settings.maxNumber - num1, settings.maxNumber)
+            num2 = Int.random(in: settings.minNumber...max(settings.minNumber, maxNum2))
+
+        case .subtraction:
+            // 減法：確保減數小於被減數
+            num1 = Int.random(in: settings.minNumber...settings.maxNumber)
+            num2 = Int.random(in: settings.minNumber...min(num1, settings.maxNumber))
+
+        case .multiplication:
+            // 乘法：使用較小的數字範圍
+            let minFactor = max(2, settings.minNumber / 1000)
+            let maxFactor = min(99, settings.maxNumber / 100)
+            num1 = Int.random(in: minFactor...maxFactor)
+            num2 = Int.random(in: minFactor...maxFactor)
+        }
+
+        return MathProblem(
+            type: type,
+            number1: num1,
+            number2: num2,
+            allowMultipleBlanksPerColumn: settings.allowMultipleBlanksPerColumn,
+            blankCount: settings.difficulty.blankCount
+        )
     }
     
     // MARK: - 答題相關

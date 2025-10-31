@@ -10,10 +10,30 @@ import SwiftUI
 struct SettingsView: View {
     @StateObject private var viewModel = MathQuizViewModel()
     @State private var showQuiz = false
-    
+
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("題型選擇"), footer: Text("至少選擇一種題型")) {
+                    ForEach(ProblemType.allCases, id: \.self) { type in
+                        Toggle(type.rawValue, isOn: Binding(
+                            get: { viewModel.settings.selectedTypes.contains(type) },
+                            set: { isSelected in
+                                if isSelected {
+                                    viewModel.settings.selectedTypes.insert(type)
+                                } else {
+                                    viewModel.settings.selectedTypes.remove(type)
+                                }
+                            }
+                        ))
+                    }
+
+                    if viewModel.settings.selectedTypes.count > 1 {
+                        Toggle("混合出題", isOn: $viewModel.settings.isMixedOrder)
+                            .help(viewModel.settings.isMixedOrder ? "題型隨機混合" : "依序完成各題型")
+                    }
+                }
+
                 Section(header: Text("測驗設定")) {
                     Stepper("題目數量: \(viewModel.settings.numberOfProblems)", 
                            value: $viewModel.settings.numberOfProblems, 
@@ -53,6 +73,7 @@ struct SettingsView: View {
                 
                 Section {
                     Button(action: {
+                        guard !viewModel.settings.selectedTypes.isEmpty else { return }
                         viewModel.startQuiz()
                         showQuiz = true
                     }) {
@@ -64,10 +85,11 @@ struct SettingsView: View {
                             Spacer()
                         }
                     }
-                    .listRowBackground(Color.blue)
+                    .listRowBackground(viewModel.settings.selectedTypes.isEmpty ? Color.gray : Color.blue)
+                    .disabled(viewModel.settings.selectedTypes.isEmpty)
                 }
             }
-            .navigationTitle("數學練習 - 減法")
+            .navigationTitle("數學練習")
             .fullScreenCover(isPresented: $showQuiz) {
                 QuizView(viewModel: viewModel)
             }
