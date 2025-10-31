@@ -16,17 +16,17 @@ struct MathProblem: Identifiable, Codable {
     let blanks: [BlankPosition]  // 空格位置
     let allowMultipleBlanksPerColumn: Bool  // 是否允許同一位數多個空格
 
-    init(number1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool = false) {
+    init(number1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool = false, blankCount: Int = 3) {
         self.id = UUID()
         self.number1 = number1
         self.number2 = number2
         self.correctAnswer = number1 - number2
         self.allowMultipleBlanksPerColumn = allowMultipleBlanksPerColumn
-        self.blanks = Self.generateBlanks(for: number1, number2: number2, allowMultipleBlanksPerColumn: allowMultipleBlanksPerColumn)
+        self.blanks = Self.generateBlanks(for: number1, number2: number2, allowMultipleBlanksPerColumn: allowMultipleBlanksPerColumn, blankCount: blankCount)
     }
     
-    // 生成空格位置(隨機選擇2-3個位置)
-    private static func generateBlanks(for num1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool) -> [BlankPosition] {
+    // 生成空格位置
+    private static func generateBlanks(for num1: Int, number2: Int, allowMultipleBlanksPerColumn: Bool, blankCount: Int) -> [BlankPosition] {
         var positions: [BlankPosition] = []
         let answer = num1 - number2
 
@@ -34,9 +34,6 @@ struct MathProblem: Identifiable, Codable {
         let digits1 = String(num1).map { Int(String($0))! }
         let digits2 = String(number2).map { Int(String($0))! }
         let answerDigits = String(answer).map { Int(String($0))! }
-
-        // 隨機選擇2-3個空格
-        let blankCount = Int.random(in: 2...3)
 
         if allowMultipleBlanksPerColumn {
             // 進階模式：允許同一位數出現多個空格

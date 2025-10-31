@@ -64,7 +64,8 @@ class MathQuizViewModel: ObservableObject {
             let problem = MathProblem(
                 number1: num1,
                 number2: num2,
-                allowMultipleBlanksPerColumn: settings.allowMultipleBlanksPerColumn
+                allowMultipleBlanksPerColumn: settings.allowMultipleBlanksPerColumn,
+                blankCount: settings.difficulty.blankCount
             )
             problems.append(problem)
 
